@@ -2,9 +2,11 @@ const weatherAPIURL = "https://api.openweathermap.org";
 const weatherAPIKey = "53a310f48d3f9c50bd27a461d439edfb";
 let searchHistory = []
 
-let searchInput = $("#search-input")
+let searchInput = $("#search-input");
 let searchForm = $("#search-form");
-let searchHistoryContainer = $("#history")
+let searchHistoryContainer = $("#history");
+let forecastContainer = $("#forecast")
+let todayContainer = $("#today");
 
 function renderSearchHistory(){
 
@@ -33,8 +35,8 @@ function appendSearchHistory(search){
 }
 
 function renderCurrentWeather(city, weatherData) {
-    let date = moment().format("D/M/YYY");
-    let tempC = weatherDat["main"]["temp"];
+    let date = moment().format("D/M/YYYY");
+    let tempC = weatherData["main"]["temp"];
     let windKph = weatherData["wind"]["speed"];
     let humidity = weatherData["main"]["humidity"];
 
@@ -43,6 +45,7 @@ function renderCurrentWeather(city, weatherData) {
 
     let card = $("<div>")
     let cardBody = $("<div>")
+    let weatherIcon = $("<img>")
 
     let heading = $("<h2>")
 
@@ -53,14 +56,85 @@ function renderCurrentWeather(city, weatherData) {
     card.attr("class", "card");
     cardBody.attr("class", "card-body");
     card.append(cardBody);
+
     heading.attr("class", "h3 card-title");
+
     tempEl.attr("class", "card-text");
     windEl.attr("class", "card-text");
     humidityEl.attr("class", "card-text");
 
     heading.text(`${city} (${date})`)
 
-    weatherIcon.attr("src")
+    weatherIcon.attr("src", iconURL);
+    weatherIcon.attr("alt", iconDescription);
+
+    heading.append(weatherIcon);
+    tempEl.text(`Temp ${tempC} C`)
+    windEl.text(`Wind ${windKph} KPH`);
+    humidityEl.text(`Humidity ${humidity} %`)
+    cardBody.append(heading, tempEl, windEl, humidityEl);
+    
+    todayContainer.html("")
+    todayContainer.append(card);
+}
+
+function renderForecast(weatherData){
+    console.log(weatherData);
+    let headingCol = $("<div>");
+    let heading = $("<h4>");
+
+    headingCol.attr("class", "col-12");
+    heading.text("5-day forecast");
+    headingCol.append(heading);
+
+    forecastContainer.html("")
+
+    forecastContainer.append(headingCol);
+
+    let futureForecast = weatherData.filter(function(forecast){
+        return forecast.dt_txt.includes("12")
+    })
+
+    console.log()
+
+    for(let i = 0; i < futureForecast.length; i++){
+        let iconURL = `https://openweathermap.org/img/w/${futureForecast[i].weather[0].icon}.png`
+        let iconDescription = futureForecast[i].weather[0].description;
+        let tempC = futureForecast[i].main.temp;
+        let humidity = futureForecast[i].main.humidity;
+        let windKph = futureForecast[i].wind.speed;
+
+        let col = $("<div>")
+        let card = $("<div>")
+        let cardBody = $("<div>")
+        let cardTitle = $("<h5>")
+        let weatherIcon = $("<img>")
+        let tempEl = $("<p>")
+        let windEl = $("<p>")
+        let humidityEl = $("<p>")
+
+        col.append(card);
+        card.append(cardBody);
+        cardBody.append(cardTitle, weatherIcon, tempEl, windEl, humidityEl);
+
+        col.attr("class", "col-md");
+        card.attr("class", "card bg-primary h-100 text-white");
+        cardTitle.attr("class", "card-title")
+        tempEl.attr("class", "card-text")
+        windEl.attr("class", "card-text")
+        humidityEl.attr("class", "card-text")
+
+        cardTitle.text(moment(futureForecast[i].dt_text).format("D/M/YYYY"))
+
+        weatherIcon.attr("src", iconURL)
+        weatherIcon.attr("alt", iconDescription)
+        tempEl.text(`Temp ${tempC} C`)
+        windEl.text(`Wind: ${windKph} KPH`)
+        humidityEl.text(`Humidity ${humidity} %`)
+
+        forecastContainer.append(col)
+
+    }
 }
 
 function fetchWeather(location){
@@ -76,7 +150,7 @@ function fetchWeather(location){
         method: "GET"
     }).then(function(response){
         renderCurrentWeather(city, response.list[0])
-        // renderForecast(data.list);
+        renderForecast(response.list);
     })
 
 }
@@ -114,5 +188,19 @@ function sumbitSearchForm(event){
     searchInput.val("");
 }
 
+
+function submitSearchHistory(event){
+    if(!$(event.target).hasClass("btn-history")){
+        return 
+    }
+
+    let search = $(event.target).attr("data-search")
+    
+    fetchCoord(search);
+    searchInput.val("")
+}
+
+
 initializeHistory()
 searchForm.on("submit", sumbitSearchForm);
+searchHistoryContainer.on("click", submitSearchHistory)
